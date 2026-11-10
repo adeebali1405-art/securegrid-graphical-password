@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecureGrid – Shoulder-Surfing Resistant Graphical Password By M.Adeeb Ali Software Developer</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121933; --panel-2:#192245; --line:#26325f;
+    --text:#e8ecff; --muted:#8e9ac7; --accent:#6c8cff; --ok:#2fd38c; --bad:#ff5d73;
+    --radius:16px; color-scheme:dark;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1fb; --panel:#ffffff; --panel-2:#f3f5ff; --line:#d5dbf3;
+    --text:#161b36; --muted:#5d6794; --accent:#4361ee; color-scheme:light;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{
+    min-height:100dvh; display:grid; place-items:center; padding:20px;
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--text);
+    background:radial-gradient(1200px 600px at 10% -10%,color-mix(in srgb,var(--accent) 25%,transparent),transparent),
+               radial-gradient(900px 500px at 100% 110%,color-mix(in srgb,var(--ok) 15%,transparent),transparent),var(--bg);
+  }
+  .card{
+    width:min(480px,100%); background:var(--panel); border:1px solid var(--line);
+    border-radius:24px; padding:26px; box-shadow:0 30px 80px -20px #0008;
+  }
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .brand{display:flex;gap:10px;align-items:center;font-weight:700;letter-spacing:.2px}
+  .logo{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),#a06cff);color:#fff}
+  .icon-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:16px}
+  .tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--panel-2);border-radius:12px;padding:4px;margin-bottom:16px}
+  .tabs button{border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-weight:600;cursor:pointer;font-size:14px}
+  .tabs button.active{background:var(--accent);color:#fff}
+  h2{font-size:20px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13.5px;line-height:1.5;margin-bottom:14px}
+  .dots{display:flex;gap:8px;justify-content:center;min-height:26px;margin:6px 0 14px}
+  .dot{width:14px;height:14px;border-radius:50%;background:var(--accent);animation:pop .25s}
+  .dots.empty::after{content:"No symbols selected";color:var(--muted);font-size:13px}
+  @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .cell{
+    aspect-ratio:1;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel-2);
+    display:grid;place-items:center;cursor:pointer;color:var(--c);transition:transform .12s,filter .2s,opacity .2s,background .2s;
+  }
+  .cell svg{width:46%;height:46%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .cell:hover,.cell:focus-visible{transform:translateY(-2px);background:color-mix(in srgb,var(--c) 14%,var(--panel-2));outline:none}
+  .cell:active{transform:scale(.94)}
+  /* Privacy shield: everything blurred except the symbol under the pointer / focus */
+  .shield .cell{filter:blur(9px) saturate(.2);opacity:.55}
+  .shield .cell:hover,.shield .cell:focus-visible,.shield .cell.touch{filter:none;opacity:1}
+  .grid.locked{pointer-events:none;opacity:.35;filter:grayscale(1)}
+  .grid.shake{animation:shake .4s}
+  @keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  .actions{display:flex;gap:10px;margin-top:16px}
+  .btn{flex:1;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2);
+    color:var(--text);font-weight:600;font-size:14px;cursor:pointer}
+  .btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .opts{display:grid;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .opt{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;color:var(--muted)}
+  .switch{position:relative;width:42px;height:24px}
+  .switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:1}
+  .switch span{position:absolute;inset:0;background:var(--line);border-radius:20px;transition:.2s}
+  .switch span::after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .switch input:checked+span{background:var(--accent)}
+  .switch input:checked+span::after{transform:translateX(18px)}
+  .meter{height:6px;background:var(--panel-2);border-radius:6px;overflow:hidden;margin-top:6px}
+  .meter i{display:block;height:100%;width:0;background:var(--bad);transition:.3s}
+  .msg{min-height:20px;text-align:center;font-size:13.5px;margin-top:12px;font-weight:600}
+  .msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)} .msg.info{color:var(--muted)}
+  .success{text-align:center;padding:20px 0}
+  .success .check{width:76px;height:76px;border-radius:50%;background:color-mix(in srgb,var(--ok) 20%,transparent);
+    color:var(--ok);display:grid;place-items:center;margin:0 auto 14px;font-size:38px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;text-align:left}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .stat b{display:block;font-size:17px} .stat small{color:var(--muted)}
+  [hidden]{display:none!important}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="card" id="app">
+  <header>
+    <div class="brand">
+      <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+      SecureGrid
+    </div>
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">☾</button>
+  </header>
+
+  <section id="authView">
+    <div class="tabs" role="tablist">
+      <button class="active" data-mode="login" role="tab">Sign in</button>
+      <button data-mode="register" role="tab">Create password</button>
+    </div>
+
+    <h2 id="title"></h2>
+    <p class="sub" id="desc"></p>
+
+    <div class="dots empty" id="dots" aria-live="polite"></div>
+    <div class="grid shield" id="grid" role="group" aria-label="Symbol grid"></div>
+    <div class="msg info" id="msg" role="status"></div>
+
+    <div id="strengthBox" hidden>
+      <div class="opt"><span>Strength</span><span id="bits">0 bits</span></div>
+      <div class="meter"><i id="bar"></i></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="undoBtn">⌫ Undo</button>
+      <button class="btn" id="clearBtn">Clear</button>
+      <button class="btn primary" id="submitBtn" disabled>Continue</button>
+    </div>
+
+    <div class="opts">
+      <label class="opt">Privacy shield (blur all but the symbol you point at)
+        <span class="switch"><input type="checkbox" id="optShield" checked><span></span></span></label>
+      <label class="opt">Reshuffle grid after every tap
+        <span class="switch"><input type="checkbox" id="optShuffle" checked><span></span></span></label>
+      <label class="opt">Clear entry if window loses focus
+        <span class="switch"><input type="checkbox" id="optBlur" checked><span></span></span></label>
+    </div>
+  </section>
+
+  <section id="successView" class="success" hidden>
+    <div class="check">✓</div>
+    <h2>Access granted</h2>
+    <p class="sub">You were verified without anyone being able to copy your tap positions.</p>
+    <div class="stats">
+      <div class="stat"><b id="sTime">—</b><small>Signed in at</small></div>
+      <div class="stat"><b id="sLen">—</b><small>Password length</small></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="resetBtn">Delete password</button>
+      <button class="btn primary" id="logoutBtn">Sign out</button>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* ---------- Symbol set (16 inline SVG icons, each with its own hue) ---------- */
+const SYMBOLS = [
+  ["star","M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z"],
+  ["heart","M20.8 5.6a5.5 5.5 0 0 0-7.8 0L12 6.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"],
+  ["moon","M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"],
+  ["sun","M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"],
+  ["bolt","M13 2L4 14h7l-1 8 9-12h-7z"],
+  ["leaf","M5 21c0-10 6-16 16-16 0 10-6 16-16 16zM5 21l8-8"],
+  ["key","M15 3a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM10.8 13.2L3 21M6 18l2 2"],
+  ["bell","M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9zM13.7 21a2 2 0 0 1-3.4 0"],
+  ["cloud","M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 0 1 0 9z"],
+  ["flag","M4 22V4M4 4h13l-2 4 2 4H4"],
+  ["anchor","M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 8v14M5 12H2a10 10 0 0 0 20 0h-3M8 12h8"],
+  ["diamond","M12 2l10 10-10 10L2 12z"],
+  ["ring","M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"],
+  ["triangle","M12 3l10 18H2z"],
+  ["cube","M12 2l9 5v10l-9 5-9-5V7zM12 12l9-5M12 12v10M12 12L3 7"],
+  ["shield","M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"]
+];
+const MIN_LEN = 5, MAX_LEN = 10, STORE = "securegrid.vault.v1";
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const enc = new TextEncoder();
+const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+const randInt = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+function shuffle(a){                       // Fisher–Yates with CSPRNG
+  a = a.slice();
+  for(let i=a.length-1;i>0;i--){ const j = randInt(i+1); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+async function derive(seq, saltHex){
+  const salt = Uint8Array.from(saltHex.match(/../g).map(h=>parseInt(h,16)));
+  if(crypto.subtle){
+    const key = await crypto.subtle.importKey("raw", enc.encode(seq.join("|")), "PBKDF2", false, ["deriveBits"]);
+    return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:150000}, key, 256));
+  }
+  let h = 5381; const s = saltHex + seq.join("|");           // fallback for insecure contexts
+  for(const c of s) h = ((h<<5)+h) ^ c.charCodeAt(0);
+  return (h>>>0).toString(16);
+}
+const getVault = () => { try{ return JSON.parse(localStorage.getItem(STORE)); }catch{ return null; } };
+const setVault = v => localStorage.setItem(STORE, JSON.stringify(v));
+
+/* ---------- State ---------- */
+const state = { mode:"login", step:1, seq:[], first:null, fails:0, lockUntil:0, order:SYMBOLS.map((_,i)=>i) };
+const els = {
+  grid:$("#grid"), dots:$("#dots"), msg:$("#msg"), submit:$("#submitBtn"),
+  title:$("#title"), desc:$("#desc"), box:$("#strengthBox"), bar:$("#bar"), bits:$("#bits")
+};
+
+function say(text, type="info"){ els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+/* ---------- Rendering ---------- */
+function renderGrid(){
+  state.order = shuffle(state.order);
+  els.grid.innerHTML = "";
+  state.order.forEach((idx, pos) => {
+    const [name, d] = SYMBOLS[idx];
+    const b = document.createElement("button");
+    b.className = "cell"; b.type = "button"; b.dataset.i = idx;
+    b.style.setProperty("--c", `hsl(${idx*22+10} 85% 66%)`);
+    b.setAttribute("aria-label", name);
+    b.innerHTML = `<svg viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+    b.addEventListener("pointerdown", e => { if(e.pointerType==="touch") b.classList.add("touch"); });
+    ["pointerup","pointercancel"].forEach(ev => b.addEventListener(ev, () => setTimeout(()=>b.classList.remove("touch"),150)));
+    b.addEventListener("click", () => pick(idx));
+    els.grid.appendChild(b);
+  });
+}
+function renderDots(){
+  els.dots.classList.toggle("empty", !state.seq.length);
+  els.dots.innerHTML = state.seq.map(()=>'<span class="dot"></span>').join("");
+  const n = state.seq.length;
+  els.submit.disabled = n < MIN_LEN || Date.now() < state.lockUntil;
+  if(state.mode==="register" && state.step===1){
+    const bitsVal = (n*Math.log2(SYMBOLS.length)).toFixed(0);
+    els.bits.textContent = `${bitsVal} bits`;
+    els.bar.style.width = Math.min(100, n/MAX_LEN*100) + "%";
+    els.bar.style.background = n<MIN_LEN ? "var(--bad)" : n<7 ? "#ffb020" : "var(--ok)";
+  }
+}
+function renderMode(){
+  const hasVault = !!getVault();
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.mode===state.mode));
+  els.box.hidden = !(state.mode==="register" && state.step===1);
+  if(state.mode==="login"){
+    els.title.textContent = "Enter your graphical password";
+    els.desc.textContent = hasVault
+      ? "Tap your symbols in order. Positions change every time, so onlookers can't replay your taps."
+      : "No password exists yet. Open “Create password” to set one up.";
+    els.submit.textContent = "Sign in";
+  }else{
+    els.title.textContent = state.step===1 ? "Create your sequence" : "Confirm your sequence";
+    els.desc.textContent = state.step===1
+      ? `Pick ${MIN_LEN}–${MAX_LEN} symbols in order (repeats allowed). Remember the symbols, not their positions.`
+      : "Repeat the same sequence to confirm.";
+    els.submit.textContent = state.step===1 ? "Continue" : "Save password";
+  }
+  state.seq = []; renderDots(); renderGrid();
+  say("");
+}
+
+/* ---------- Interaction ---------- */
+function pick(idx){
+  if(Date.now() < state.lockUntil || state.seq.length >= MAX_LEN) return;
+  state.seq.push(idx);
+  navigator.vibrate?.(8);
+  renderDots();
+  if($("#optShuffle").checked) renderGrid();       // dynamic re-layout defeats position recording
+}
+$("#undoBtn").onclick = () => { state.seq.pop(); renderDots(); };
+$("#clearBtn").onclick = () => { state.seq = []; renderDots(); say(""); if($("#optShuffle").checked) renderGrid(); };
+
+els.submit.onclick = async () => {
+  if(state.mode==="register"){
+    if(state.step===1){ state.first = state.seq.slice(); state.step = 2; renderMode(); return; }
+    if(state.first.join() !== state.seq.join()){
+      say("Sequences don't match. Start again.", "bad"); shake(); state.step = 1; state.first = null;
+      setTimeout(renderMode, 900); return;
+    }
+    const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
+    setVault({ salt, hash: await derive(state.seq, salt), len: state.seq.length, created: Date.now() });
+    state.step = 1; state.first = null; state.mode = "login"; renderMode();
+    say("Password saved. You can sign in now.", "ok");
+    return;
+  }
+  const v = getVault();
+  if(!v) return say("No password found. Create one first.", "bad");
+  const ok = (await derive(state.seq, v.salt)) === v.hash;
+  if(ok){ state.fails = 0; showSuccess(v); }
+  else{
+    state.fails++; shake();
+    const wait = state.fails >= 3 ? Math.min(300, 15 * 2 ** (state.fails-3)) : 0;
+    if(wait){ lockout(wait); }
+    else say(`Incorrect. ${3 - state.fails} attempt(s) before lockout.`, "bad");
+    state.seq = []; renderDots(); renderGrid();
+  }
+};
+
+function shake(){ els.grid.classList.remove("shake"); void els.grid.offsetWidth; els.grid.classList.add("shake"); }
+function lockout(sec){
+  state.lockUntil = Date.now() + sec*1000;
+  els.grid.classList.add("locked"); els.submit.disabled = true;
+  const t = setInterval(() => {
+    const left = Math.ceil((state.lockUntil - Date.now())/1000);
+    if(left <= 0){ clearInterval(t); els.grid.classList.remove("locked"); say("You can try again.", "info"); renderDots(); }
+    else say(`Too many attempts. Locked for ${left}s`, "bad");
+  }, 250);
+}
+function showSuccess(v){
+  $("#authView").hidden = true; $("#successView").hidden = false;
+  $("#sTime").textContent = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  $("#sLen").textContent = v.len + " symbols";
+}
+$("#logoutBtn").onclick = () => { $("#successView").hidden = true; $("#authView").hidden = false; renderMode(); };
+$("#resetBtn").onclick = () => {
+  if(confirm("Delete the saved graphical password?")){ localStorage.removeItem(STORE); state.mode="register"; $("#logoutBtn").click(); }
+};
+
+/* ---------- Options & chrome ---------- */
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  state.mode = b.dataset.mode; state.step = 1; state.first = null; renderMode();
+});
+$("#optShield").onchange = e => els.grid.classList.toggle("shield", e.target.checked);
+window.addEventListener("blur", () => {
+  if($("#optBlur").checked && state.seq.length){ state.seq = []; renderDots(); renderGrid(); say("Entry cleared for your privacy.", "info"); }
+});
+document.addEventListener("visibilitychange", () => { if(document.hidden) window.dispatchEvent(new Event("blur")); });
+
+$("#themeBtn").onclick = () => {
+  const r = document.documentElement, light = r.dataset.theme !== "light";
+  r.dataset.theme = light ? "light" : "dark"; $("#themeBtn").textContent = light ? "☀" : "☾";
+};
+
+/* ---------- Boot ---------- */
+if(!getVault()) state.mode = "register";
+renderMode();
+</script>
+</body>
+</html>
